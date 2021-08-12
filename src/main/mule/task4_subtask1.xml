@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:compression="http://www.mulesoft.org/schema/mule/compression" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="93a82e1b-0ef0-458b-933e-f8e46a0700b8" >
+		<file:connection workingDir="C:\Users\u1092331\Desktop\" />
+	</file:config>
+	<flow name="task4_subtask1Flow" doc:id="6f5fdfb4-2e91-4cc8-98df-a1c738fdfe42" >
+		<scheduler doc:name="Scheduler" doc:id="0a803e96-936c-4095-8885-fddb91e3d62d" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="30" timeUnit="HOURS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<file:read doc:name="Read" doc:id="b6d5dd77-3c49-4ba3-a3bf-38ddd35e09e2" path="C:\Users\u1092331\Desktop\Tasks\task4_subtask1\input\addresses.xlsx" outputMimeType="application/xlsx; tableoffset=A1; streaming=true; ignoreemptyline=true" outputEncoding="UTF-8"/>
+		<set-variable value="#[attributes.fileName]" doc:name="File Name" doc:id="e462b857-02c2-470c-b826-6cc885714701" variableName="filename"/>
+		<ee:transform doc:name="Transform Message" doc:id="8d922017-39f7-416d-b9f4-cca66fab2ccf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+payload."addresses" map (value, key)->{
+	
+	"First Name":value."First Name",
+	"Last Name": value."Last Name",
+	"Address": value.Address,
+	"Town":value."Town ",
+	"Code":value.Code,
+	"PIN":value.PIN
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="35a68a95-4ebf-4557-9e4a-6a3ba09c810a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Arrays
+
+var data = payload map do{
+	var str = write($,"application/json")
+	var val = $
+	---
+	{
+			string:str,
+			value:val,
+			sizeInBytes:sizeOf(str),
+			sizeOfChar:sizeOf(str)
+	}
+}
+var res = (data map 
+	if ($["sizeOfChar"]<300) $
+	else null) 
+	
+output application/json
+---
+(res partition (item) -> item != null)["success"]]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="charOfBatch" ><![CDATA[%dw 2.0
+output application/java
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="sizeOfBatch" ><![CDATA[%dw 2.0
+output application/java
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="key_ref" ><![CDATA[%dw 2.0
+output application/java
+---
+1]]></ee:set-variable>
+				<ee:set-variable variableName="count" ><![CDATA[%dw 2.0
+output application/java
+---
+1]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ae5f8bf7-100c-4c90-85ab-4a6b9c854e97" message='#[payload["sizeOfChar"]]' />
+		<set-variable value="#[[]]" doc:name="Result" doc:id="63adbdb9-1715-48ea-a7bd-4d9ec550d56d" variableName="result"/>
+		<foreach doc:name="For Each" doc:id="a91a6112-5fcb-4c16-b60f-a278f7e45659" >
+			<ee:transform doc:name="Transform Message" doc:id="26e9a2c9-a25a-4bba-a782-c91ed9fb4688">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="key_ref"><![CDATA[output application/java
+---
+if((vars.charOfBatch + payload["sizeOfChar"]>900) or
+	(vars.count mod 3 ) == 0 
+) vars.key_ref + 1
+else vars.key_ref]]></ee:set-variable>
+					<ee:set-variable variableName="count" ><![CDATA[%dw 2.0
+output application/java
+---
+if((vars.charOfBatch + payload["sizeOfChar"]>900) or
+	(vars.count mod 3 ) == 0 
+) 1
+else vars.count + 1]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="28779cd7-4159-40ee-a449-83ab321c0ebf" message="#[vars.key_ref]"/>
+			<ee:transform doc:name="Transform Message" doc:id="bf55e349-b17f-4970-a1c3-c4bda3bdbf63">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="charOfBatch"><![CDATA[%dw 2.0
+var size = payload["sizeOfChar"]
+output application/java
+---
+if((vars.charOfBatch + size)>900) size
+else vars.charOfBatch +size]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="16286042-d359-4441-95e6-5ea2874530a8" message="#[vars.charOfBatch]"/>
+			<ee:transform doc:name="Transform Message" doc:id="d6d39c0f-3945-4866-bb38-c08dcfef7de3" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="result" ><![CDATA[%dw 2.0
+output application/json
+---
+	vars.result ++
+	[
+		payload ++ {key:(vars.key_ref as String)},
+		
+	]
+		
+	
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="4691b51e-77d9-49d5-9679-e4349bf8b137" />
+		<ee:transform doc:name="Transform Message" doc:id="6a74ffec-09e5-4b0d-adce-600ec90f0ba6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+var res = (vars.result groupBy ((item, index) -> item.key)) 
+output application/json
+---
+res mapObject {
+    ($$$+1):$.value
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="d4bd5e09-4f40-492a-bfa4-ba785e0956e5" message="#[payload]" />
+		<foreach doc:name="For Each" doc:id="0533fe80-9430-4d0e-974b-7e065c8b9716" >
+			<file:write doc:name="Write" doc:id="9791eca3-46e0-4427-9a20-de37fa9b219e" path='#["C:/Users/u1092331/Desktop/Tasks/task4_subtask1/output/" ++ vars.filename ++ keysOf(payload)[0] ++ ".json"]'>
+				<file:content ><![CDATA[#[payload[keysOf(payload)[0]]]]]></file:content>
+			</file:write>
+		</foreach>
+	</flow>
+</mule>

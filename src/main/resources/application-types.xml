@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="address" format="excel">
+      <types:shape format="weave"><![CDATA[%dw 2.0
+
+type address = {|
+  Sheet1?: Array<{|    "First Name": String,     "Last Name": String,     Address: String,     "Town ": String,     Code: String,     PIN: String  |}>
+|}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="addressesxlsx" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="samplexl" format="excel">
+      <types:shape format="weave"><![CDATA[%dw 2.0
+
+type samplexl = {|
+  Sheet1?: Array<{|    id: String,     name: String  |}>
+|}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="out" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#8d922017-39f7-416d-b9f4-cca66fab2ccf">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="samplexl"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#d6d39c0f-3945-4866-bb38-c08dcfef7de3"/>
+</types:mule>
